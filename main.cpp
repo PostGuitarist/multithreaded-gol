@@ -162,9 +162,11 @@ int main()
 
     while (state.hasLife)
     {
+        system("clear");
+
         printf("Generation %d:\n", generation++);
         printGrid(&state);
-        
+
         // Fixes issue of game never ending
         memcpy(state.previousGrid, state.grid, sizeof(state.grid));
 
@@ -184,6 +186,8 @@ int main()
         usleep(SLEEP_TIME);
     }
 
+    system("clear");
+    
     printf("Simulation ended after %d generations\n", generation);
     printf("Final state:\n");
     printGrid(&state);
