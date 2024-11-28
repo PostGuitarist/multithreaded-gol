@@ -2,12 +2,12 @@ default: build
 
 build:
 	@echo "Building..."
-	gcc connell_pthread.cpp -o connell_pthread -l pthread
+	gcc main.cpp -o main -l pthread
 	@echo "Build complete."
 	@echo "Running..."
-	./connell_pthread
+	./main
 
 clean:
 	@echo "Cleaning..."
-	rm connell_pthread
+	rm main
 	@echo "Clean complete."
