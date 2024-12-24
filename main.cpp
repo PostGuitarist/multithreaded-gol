@@ -27,100 +27,10 @@ typedef struct
     GameState *state;
 } ThreadData;
 
-void printGrid(const GameState *state)
-{
-    for (int i = 0; i < SIZE; i++)
-    {
-        for (int j = 0; j < SIZE; j++)
-        {
-            printf("%c ", state->grid[i][j] ? '#' : '.');
-        }
-        printf("\n");
-    }
-    printf("\n");
-}
-
-int countNeighbors(const GameState *state, int row, int col)
-{
-    int count = 0;
-    for (int i = -1; i <= 1; i++)
-    {
-        for (int j = -1; j <= 1; j++)
-        {
-            if (i == 0 && j == 0)
-                continue;
-            int newRow = row + i;
-            int newCol = col + j;
-            if (newRow >= 0 && newRow < SIZE && newCol >= 0 && newCol < SIZE)
-            {
-                count += state->grid[newRow][newCol];
-            }
-        }
-    }
-    return count;
-}
-
-void *simulateQuadrant(void *param)
-{
-    ThreadData *data = (ThreadData *)param;
-    GameState *state = data->state;
-    int newGrid[SIZE][SIZE];
-
-    for (int i = data->startRow; i < data->endRow; i++)
-    {
-        for (int j = data->startCol; j < data->endCol; j++)
-        {
-            int neighbors = countNeighbors(state, i, j);
-            if (state->grid[i][j] == 1)
-            {
-                newGrid[i][j] = (neighbors == 2 || neighbors == 3) ? 1 : 0;
-            }
-            else
-            {
-                newGrid[i][j] = (neighbors == 3) ? 1 : 0;
-            }
-        }
-    }
-
-    pthread_mutex_lock(&state->mutex);
-    for (int i = data->startRow; i < data->endRow; i++)
-    {
-        for (int j = data->startCol; j < data->endCol; j++)
-        {
-            state->grid[i][j] = newGrid[i][j];
-        }
-    }
-    pthread_mutex_unlock(&state->mutex);
-
-    pthread_exit(0);
-}
-
-bool checkForLife(GameState *state)
-{
-    // Check if any life exists
-    for (int i = 0; i < SIZE; i++)
-    {
-        for (int j = 0; j < SIZE; j++)
-        {
-            if (state->grid[i][j] == 1)
-            {
-                // Check if grid is different from previous grid
-                for (int x = 0; x < SIZE; x++)
-                {
-                    for (int y = 0; y < SIZE; y++)
-                    {
-                        if (state->grid[x][y] != state->previousGrid[x][y])
-                        {
-                            return true; // Grid is different and has life
-                        }
-                    }
-                }
-                return false; // Grid is the same but has life
-            }
-        }
-    }
-    return false; // No life exists
-}
+void printGrid(const GameState *state);
+int countNeighbors(const GameState *state, int row, int col);
+void *simulateQuadrant(void *param); /* threads call this function */
+bool checkForLife(GameState *state);
 
 int main()
 {
@@ -193,4 +103,96 @@ int main()
     printGrid(&state);
     pthread_mutex_destroy(&state.mutex);
     return 0;
+}
+
+void printGrid(const GameState *state)
+{
+    for (int i = 0; i < SIZE; i++)
+    {
+        for (int j = 0; j < SIZE; j++)
+        {
+            printf("%c ", state->grid[i][j] ? '#' : '.');
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
+int countNeighbors(const GameState *state, int row, int col)
+{
+    int count = 0;
+    for (int i = -1; i <= 1; i++)
+    {
+        for (int j = -1; j <= 1; j++)
+        {
+            if (i == 0 && j == 0)
+                continue;
+            int newRow = row + i;
+            int newCol = col + j;
+            if (newRow >= 0 && newRow < SIZE && newCol >= 0 && newCol < SIZE)
+            {
+                count += state->grid[newRow][newCol];
+            }
+        }
+    }
+    return count;
+}
+
+/* this is the function the threads execute */
+void *simulateQuadrant(void *param)
+{
+    ThreadData *data = (ThreadData *)param;
+    GameState *state = data->state;
+    int newGrid[SIZE][SIZE];
+
+    for (int i = data->startRow; i < data->endRow; i++)
+    {
+        for (int j = data->startCol; j < data->endCol; j++)
+        {
+            int neighbors = countNeighbors(state, i, j);
+            if (state->grid[i][j] == 1)
+            {
+                newGrid[i][j] = (neighbors == 2 || neighbors == 3) ? 1 : 0;
+            }
+            else
+            {
+                newGrid[i][j] = (neighbors == 3) ? 1 : 0;
+            }
+        }
+    }
+
+    pthread_mutex_lock(&state->mutex);
+    for (int i = data->startRow; i < data->endRow; i++)
+    {
+        for (int j = data->startCol; j < data->endCol; j++)
+        {
+            state->grid[i][j] = newGrid[i][j];
+        }
+    }
+    pthread_mutex_unlock(&state->mutex);
+
+    pthread_exit(0);
+}
+
+bool checkForLife(GameState *state)
+{
+    bool hasLife = false;
+    bool isDifferent = false;
+    
+    // Check if any life exists
+    for (int i = 0; i < SIZE; i++)
+    {
+        for (int j = 0; j < SIZE; j++)
+        {
+            if (state->grid[i][j] == 1)
+            {
+                hasLife = true;
+            }
+            if (state->grid[i][j] != state->previousGrid[i][j])
+            {
+                isDifferent = true;
+            }
+        }
+    }
+    return hasLife && isDifferent;
 }
